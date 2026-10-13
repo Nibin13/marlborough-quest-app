@@ -95,16 +95,20 @@ class _ProfessionalEloquentScreenState extends State<ProfessionalEloquentScreen>
     }
   }
 
+  String _sessionBaseText = '';
+
   void _toggleListening() {
     if (_isListening) {
       SpeechService.stopListening();
       setState(() {
         _isListening = false;
+        _interimTranscript = '';
       });
       if (_rawTextController.text.trim().isNotEmpty) {
         _purifyText();
       }
     } else {
+      _sessionBaseText = _rawTextController.text.trim();
       setState(() {
         _isListening = true;
         _interimTranscript = '';
@@ -114,11 +118,14 @@ class _ProfessionalEloquentScreenState extends State<ProfessionalEloquentScreen>
         onResult: (result) {
           if (mounted) {
             setState(() {
-              if (result.finalTranscript.isNotEmpty) {
-                final current = _rawTextController.text;
-                _rawTextController.text = current.isEmpty
-                    ? result.finalTranscript
-                    : '$current ${result.finalTranscript}';
+              final newWords = result.fullTranscript.isNotEmpty
+                  ? result.fullTranscript
+                  : result.finalTranscript;
+
+              if (newWords.isNotEmpty) {
+                _rawTextController.text = _sessionBaseText.isEmpty
+                    ? newWords
+                    : '$_sessionBaseText $newWords';
               }
               _interimTranscript = result.interimTranscript;
             });

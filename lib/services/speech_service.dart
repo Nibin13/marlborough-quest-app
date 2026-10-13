@@ -7,7 +7,13 @@ import 'speech_web_bridge.dart' if (dart.library.io) 'speech_dummy_bridge.dart' 
 class SpeechResult {
   final String finalTranscript;
   final String interimTranscript;
-  SpeechResult({required this.finalTranscript, required this.interimTranscript});
+  final String fullTranscript;
+
+  SpeechResult({
+    required this.finalTranscript,
+    required this.interimTranscript,
+    this.fullTranscript = '',
+  });
 }
 
 class SpeechService {
@@ -25,6 +31,7 @@ class SpeechService {
           onResult(SpeechResult(
             finalTranscript: data['final'] ?? '',
             interimTranscript: data['interim'] ?? '',
+            fullTranscript: data['full'] ?? '',
           ));
         } catch (_) {}
       },

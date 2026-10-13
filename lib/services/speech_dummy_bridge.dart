@@ -3,6 +3,7 @@ import 'package:speech_to_text/speech_to_text.dart' as stt;
 
 final stt.SpeechToText _speech = stt.SpeechToText();
 bool _isInitialized = false;
+String? _detectedLocaleId;
 
 bool isSpeechSupported() => true;
 
@@ -11,19 +12,31 @@ bool startWebListening({
   required void Function(String) onError,
   required void Function(bool) onStatusChange,
 }) {
-  void beginListening() {
+  Future<void> beginListening() async {
     onStatusChange(true);
-    _speech.listen(
+    try {
+      if (_detectedLocaleId == null) {
+        final sysLoc = await _speech.systemLocale();
+        _detectedLocaleId = sysLoc?.localeId;
+      }
+    } catch (_) {}
+
+    await _speech.listen(
       onResult: (result) {
         final payload = jsonEncode({
-          'final': result.recognizedWords,
-          'interim': '',
+          'final': result.finalResult ? result.recognizedWords : '',
+          'interim': result.finalResult ? '' : result.recognizedWords,
+          'full': result.recognizedWords,
         });
         onResult(payload);
       },
+      localeId: _detectedLocaleId,
       listenOptions: stt.SpeechListenOptions(
         listenMode: stt.ListenMode.dictation,
-        pauseFor: const Duration(seconds: 4),
+        cancelOnError: false,
+        partialResults: true,
+        autoPunctuation: true,
+        enableHapticFeedback: true,
       ),
     );
   }
@@ -42,7 +55,7 @@ bool startWebListening({
       if (available) {
         beginListening();
       } else {
-        onError('Microphone speech recognition is not available or permission was denied.');
+        onError('Microphone permission was denied or speech recognition is unavailable.');
       }
     }).catchError((err) {
       onError(err.toString());

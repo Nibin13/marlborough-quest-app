@@ -25,29 +25,42 @@ window.eloquentSpeech = {
     var recog = new SpeechRecognition();
     recog.continuous = true;
     recog.interimResults = true;
-    recog.lang = lang || 'en-US';
+    // Auto-detect user device language for accurate transcription across accents
+    recog.lang = navigator.language || lang || 'en-US';
 
     recog.onstart = function() {
       self.isListening = true;
       if (onStatus) onStatus('recording');
     };
 
+    var accumulatedFinal = '';
+
     recog.onresult = function(event) {
       var interimTranscript = '';
-      var finalTranscript = '';
+      var currentFinal = '';
 
       for (var i = event.resultIndex; i < event.results.length; ++i) {
         if (event.results[i].isFinal) {
-          finalTranscript += event.results[i][0].transcript;
+          currentFinal += event.results[i][0].transcript;
         } else {
           interimTranscript += event.results[i][0].transcript;
         }
       }
 
+      if (currentFinal) {
+        accumulatedFinal += (accumulatedFinal ? ' ' : '') + currentFinal.trim();
+      }
+
+      var fullText = accumulatedFinal;
+      if (interimTranscript) {
+        fullText += (fullText ? ' ' : '') + interimTranscript.trim();
+      }
+
       if (onResult) {
         onResult(JSON.stringify({
-          final: finalTranscript,
-          interim: interimTranscript
+          final: currentFinal.trim(),
+          interim: interimTranscript.trim(),
+          full: fullText.trim()
         }));
       }
     };
