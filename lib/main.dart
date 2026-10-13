@@ -233,20 +233,17 @@ class _ProfessionalEloquentScreenState extends State<ProfessionalEloquentScreen>
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
-    final isCompact = screenWidth < 900;
+    final isMobile = screenWidth < 768;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       body: SafeArea(
         child: Column(
           children: [
-            _buildHeader(),
+            _buildHeader(isMobile),
             const Divider(height: 1, thickness: 1, color: Color(0xFFE2E8F0)),
             Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                child: isCompact ? _buildCompactLayout() : _buildSplitDashboardLayout(),
-              ),
+              child: isMobile ? _buildMobileView() : _buildDesktopDashboard(),
             ),
           ],
         ),
@@ -254,16 +251,16 @@ class _ProfessionalEloquentScreenState extends State<ProfessionalEloquentScreen>
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(bool isMobile) {
     return Container(
-      height: 58,
-      padding: const EdgeInsets.symmetric(horizontal: 24),
+      height: 54,
+      padding: EdgeInsets.symmetric(horizontal: isMobile ? 14 : 24),
       color: Colors.white,
       child: Row(
         children: [
           Image.asset(
             'assets/logo.png',
-            height: 38,
+            height: isMobile ? 32 : 38,
             fit: BoxFit.contain,
             errorBuilder: (context, error, stackTrace) {
               return const Row(
@@ -271,7 +268,7 @@ class _ProfessionalEloquentScreenState extends State<ProfessionalEloquentScreen>
                   Text(
                     'marlborough ',
                     style: TextStyle(
-                      fontSize: 20,
+                      fontSize: 18,
                       fontWeight: FontWeight.w800,
                       color: Color(0xFFE52535),
                       letterSpacing: -0.5,
@@ -280,7 +277,7 @@ class _ProfessionalEloquentScreenState extends State<ProfessionalEloquentScreen>
                   Text(
                     'quest',
                     style: TextStyle(
-                      fontSize: 20,
+                      fontSize: 18,
                       fontWeight: FontWeight.w800,
                       color: Color(0xFF8A1528),
                       letterSpacing: -0.5,
@@ -290,45 +287,49 @@ class _ProfessionalEloquentScreenState extends State<ProfessionalEloquentScreen>
               );
             },
           ),
-          const SizedBox(width: 14),
+          const SizedBox(width: 10),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
+            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
             decoration: BoxDecoration(
               color: const Color(0xFFFEF2F2),
               borderRadius: BorderRadius.circular(5),
               border: Border.all(color: const Color(0xFFFCA5A5)),
             ),
-            child: const Text(
-              'Voice Assistance Demo',
-              style: TextStyle(
-                fontSize: 11,
+            child: Text(
+              isMobile ? 'Voice Demo' : 'Voice Assistance Demo',
+              style: const TextStyle(
+                fontSize: 10.5,
                 fontWeight: FontWeight.w600,
                 color: Color(0xFFE52535),
               ),
             ),
           ),
           const Spacer(),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF1F5F9),
-              borderRadius: BorderRadius.circular(6),
+          if (!isMobile) ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF1F5F9),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.bolt_rounded, size: 14, color: Color(0xFFE52535)),
+                  SizedBox(width: 4),
+                  Text(
+                    'Powered by Google Gemma',
+                    style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w500, color: Color(0xFF475569)),
+                  ),
+                ],
+              ),
             ),
-            child: const Row(
-              children: [
-                Icon(Icons.bolt_rounded, size: 14, color: Color(0xFFE52535)),
-                SizedBox(width: 4),
-                Text(
-                  'Powered by Google Gemma',
-                  style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w500, color: Color(0xFF475569)),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 10),
+            const SizedBox(width: 8),
+          ],
           IconButton(
-            icon: const Icon(Icons.settings_outlined, color: Color(0xFF64748B), size: 19),
+            icon: const Icon(Icons.settings_outlined, color: Color(0xFF64748B), size: 20),
             tooltip: 'Settings',
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
             onPressed: _showSettingsDialog,
           ),
         ],
@@ -336,41 +337,290 @@ class _ProfessionalEloquentScreenState extends State<ProfessionalEloquentScreen>
     );
   }
 
-  // Two-column split layout: Left = Audio & Input, Right = Polished Output
-  Widget _buildSplitDashboardLayout() {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        // Left Column: Dictation & Presets
-        Expanded(
-          flex: 5,
-          child: _buildLeftCard(),
-        ),
-        const SizedBox(width: 16),
-        // Right Column: Output & Controls
-        Expanded(
-          flex: 6,
-          child: _buildRightCard(),
-        ),
-      ],
-    );
-  }
-
-  // Fallback layout for very small screens
-  Widget _buildCompactLayout() {
+  // =========================================================================
+  // MOBILE VIEW: Natural vertical flow without nested unbounded layout issues
+  // =========================================================================
+  Widget _buildMobileView() {
     return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _buildLeftCard(),
+          // Sample Presets Bar
+          _buildPresetsBar(),
+          const SizedBox(height: 12),
+
+          // Dictation Card
+          _buildMobileDictationCard(),
           const SizedBox(height: 14),
-          _buildRightCard(),
+
+          // Output Format Pills & Tone
+          _buildFormatSelector(isMobile: true),
+          const SizedBox(height: 12),
+
+          // Result Card
+          _buildMobileResultCard(),
+          const SizedBox(height: 30),
         ],
       ),
     );
   }
 
-  // Left card: Voice dictation, audio wave, text input, preset pills
-  Widget _buildLeftCard() {
+  Widget _buildMobileDictationCard() {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: _isListening ? const Color(0xFFE52535) : const Color(0xFFE2E8F0),
+          width: _isListening ? 1.5 : 1.0,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Icon(
+                _isListening ? Icons.mic_rounded : Icons.mic_none_rounded,
+                size: 16,
+                color: _isListening ? const Color(0xFFE52535) : const Color(0xFF475569),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                _isListening ? 'RECORDING IN PROGRESS...' : 'SPOKEN DICTATION',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.6,
+                  color: _isListening ? const Color(0xFFE52535) : const Color(0xFF475569),
+                ),
+              ),
+              const Spacer(),
+              if (_rawTextController.text.isNotEmpty)
+                InkWell(
+                  onTap: () {
+                    setState(() {
+                      _rawTextController.clear();
+                      _interimTranscript = '';
+                      _lastResult = null;
+                    });
+                  },
+                  child: const Text('Clear', style: TextStyle(fontSize: 11, color: Color(0xFF94A3B8))),
+                ),
+            ],
+          ),
+          const SizedBox(height: 10),
+
+          // Input area with fixed minimum height
+          Container(
+            constraints: const BoxConstraints(minHeight: 90, maxHeight: 150),
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+            ),
+            child: TextField(
+              controller: _rawTextController,
+              maxLines: null,
+              style: const TextStyle(fontSize: 13.5, height: 1.45, color: Color(0xFF0F172A)),
+              decoration: InputDecoration(
+                hintText: _isListening
+                    ? 'Listening... Speak naturally (fillers will be polished).'
+                    : 'Tap the mic to dictate, or tap a sample above...',
+                hintStyle: const TextStyle(fontSize: 12.5, color: Color(0xFF94A3B8)),
+                border: InputBorder.none,
+                isDense: true,
+                contentPadding: EdgeInsets.zero,
+              ),
+            ),
+          ),
+          if (_interimTranscript.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Text(
+                '$_interimTranscript...',
+                style: const TextStyle(fontSize: 12, fontStyle: FontStyle.italic, color: Color(0xFFE52535)),
+              ),
+            ),
+          const SizedBox(height: 10),
+
+          // Action row
+          Row(
+            children: [
+              _buildMicrophoneButton(size: 38),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _isListening
+                    ? _buildSoundWaves()
+                    : const Text(
+                        'Tap mic to record voice',
+                        style: TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                      ),
+              ),
+              if (_rawTextController.text.isNotEmpty && !_isListening)
+                ElevatedButton(
+                  onPressed: _purifyText,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFE52535),
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(7)),
+                  ),
+                  child: const Text('Polish', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMobileResultCard() {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.auto_awesome_rounded, size: 15, color: Color(0xFFE52535)),
+              const SizedBox(width: 6),
+              const Text(
+                'POLISHED RESULT',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.6,
+                  color: Color(0xFF475569),
+                ),
+              ),
+              const Spacer(),
+              if (_lastResult != null)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFECFDF5),
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(color: const Color(0xFFA7F3D0)),
+                  ),
+                  child: Text(
+                    '+${_lastResult!.clarityBoostPercent}% Clarity',
+                    style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF059669)),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 10),
+
+          // Output text container
+          Container(
+            constraints: const BoxConstraints(minHeight: 110),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+            ),
+            child: _buildOutputBody(),
+          ),
+          const SizedBox(height: 10),
+
+          // Bottom Action Row
+          if (_lastResult != null)
+            Row(
+              children: [
+                if (_lastResult!.fillerCount > 0)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFEF2F2),
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(color: const Color(0xFFFECACA)),
+                    ),
+                    child: Text(
+                      '${_lastResult!.fillerCount} Fillers Removed',
+                      style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFFE52535)),
+                    ),
+                  ),
+                const Spacer(),
+                OutlinedButton.icon(
+                  onPressed: _togglePlayAudio,
+                  icon: Icon(_isPlayingAudio ? Icons.stop_rounded : Icons.volume_up_rounded, size: 13),
+                  label: Text(_isPlayingAudio ? 'Stop' : 'Listen', style: const TextStyle(fontSize: 11)),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFF334155),
+                    side: const BorderSide(color: Color(0xFFCBD5E1)),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                ElevatedButton.icon(
+                  onPressed: _copyToClipboard,
+                  icon: const Icon(Icons.copy_rounded, size: 13),
+                  label: const Text('Copy', style: TextStyle(fontSize: 11)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFE52535),
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                  ),
+                ),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+
+  // =========================================================================
+  // DESKTOP DASHBOARD (Fits on PC screens without page scrolling)
+  // =========================================================================
+  Widget _buildDesktopDashboard() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(
+            flex: 5,
+            child: _buildDesktopLeftCard(),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            flex: 6,
+            child: _buildDesktopRightCard(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDesktopLeftCard() {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
@@ -388,7 +638,6 @@ class _ProfessionalEloquentScreenState extends State<ProfessionalEloquentScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Section Title & Presets
           Row(
             children: [
               const Icon(Icons.mic_none_rounded, size: 16, color: Color(0xFFE52535)),
@@ -417,53 +666,9 @@ class _ProfessionalEloquentScreenState extends State<ProfessionalEloquentScreen>
             ],
           ),
           const SizedBox(height: 10),
+          _buildPresetsBar(),
+          const SizedBox(height: 10),
 
-          // Preset sample bar
-          if (_presets.isNotEmpty) ...[
-            SizedBox(
-              height: 30,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                itemCount: _presets.length,
-                separatorBuilder: (_, _) => const SizedBox(width: 6),
-                itemBuilder: (context, index) {
-                  final p = _presets[index];
-                  return InkWell(
-                    borderRadius: BorderRadius.circular(14),
-                    onTap: () => _loadPreset(p),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF8FAFC),
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: const Color(0xFFE2E8F0)),
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 5,
-                            height: 5,
-                            decoration: const BoxDecoration(
-                              color: Color(0xFFE52535),
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            p.title,
-                            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: Color(0xFF475569)),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-            const SizedBox(height: 10),
-          ],
-
-          // Text Field Container
           Expanded(
             child: Container(
               padding: const EdgeInsets.all(12),
@@ -485,7 +690,7 @@ class _ProfessionalEloquentScreenState extends State<ProfessionalEloquentScreen>
                       style: const TextStyle(fontSize: 14, height: 1.5, color: Color(0xFF0F172A)),
                       decoration: InputDecoration(
                         hintText: _isListening
-                            ? 'Listening... Speak naturally (fillers like "um", "uh" will be polished).'
+                            ? 'Listening... Speak naturally (fillers will be polished).'
                             : 'Click the red microphone to dictate, or select a sample above...',
                         hintStyle: const TextStyle(fontSize: 13, color: Color(0xFF94A3B8)),
                         border: InputBorder.none,
@@ -506,7 +711,6 @@ class _ProfessionalEloquentScreenState extends State<ProfessionalEloquentScreen>
           ),
           const SizedBox(height: 12),
 
-          // Bottom Record Action Bar
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
             decoration: BoxDecoration(
@@ -515,7 +719,7 @@ class _ProfessionalEloquentScreenState extends State<ProfessionalEloquentScreen>
             ),
             child: Row(
               children: [
-                _buildMicrophoneButton(),
+                _buildMicrophoneButton(size: 38),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
@@ -560,8 +764,7 @@ class _ProfessionalEloquentScreenState extends State<ProfessionalEloquentScreen>
     );
   }
 
-  // Right card: Output Format, Tone, Polished Text, Metrics, Copy
-  Widget _buildRightCard() {
+  Widget _buildDesktopRightCard() {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
@@ -579,7 +782,6 @@ class _ProfessionalEloquentScreenState extends State<ProfessionalEloquentScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Top Format and Tone Selector Bar
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -602,61 +804,9 @@ class _ProfessionalEloquentScreenState extends State<ProfessionalEloquentScreen>
             ],
           ),
           const SizedBox(height: 10),
-
-          // Output Format Pills
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: _modes.map((m) {
-                final isSelected = _selectedMode == m['id'];
-                return Padding(
-                  padding: const EdgeInsets.only(right: 6),
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(16),
-                    onTap: () {
-                      setState(() {
-                        _selectedMode = m['id'] as String;
-                      });
-                      if (_rawTextController.text.trim().isNotEmpty) {
-                        _purifyText();
-                      }
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 5),
-                      decoration: BoxDecoration(
-                        color: isSelected ? const Color(0xFFFEF2F2) : Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: isSelected ? const Color(0xFFE52535) : const Color(0xFFE2E8F0),
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            m['icon'] as IconData,
-                            size: 13,
-                            color: isSelected ? const Color(0xFFE52535) : const Color(0xFF64748B),
-                          ),
-                          const SizedBox(width: 5),
-                          Text(
-                            m['label'] as String,
-                            style: TextStyle(
-                              fontSize: 11.5,
-                              fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                              color: isSelected ? const Color(0xFFE52535) : const Color(0xFF334155),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
-          ),
+          _buildFormatSelector(isMobile: false),
           const SizedBox(height: 12),
 
-          // Main Polished Content Box
           Expanded(
             child: Container(
               padding: const EdgeInsets.all(16),
@@ -670,7 +820,6 @@ class _ProfessionalEloquentScreenState extends State<ProfessionalEloquentScreen>
           ),
           const SizedBox(height: 12),
 
-          // Bottom Metrics and Action Buttons
           Row(
             children: [
               if (_lastResult != null) ...[
@@ -735,6 +884,116 @@ class _ProfessionalEloquentScreenState extends State<ProfessionalEloquentScreen>
     );
   }
 
+  // Shared Presets Bar
+  Widget _buildPresetsBar() {
+    if (_presets.isEmpty) return const SizedBox.shrink();
+
+    return SizedBox(
+      height: 32,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: _presets.length,
+        separatorBuilder: (_, _) => const SizedBox(width: 6),
+        itemBuilder: (context, index) {
+          final p = _presets[index];
+          return InkWell(
+            borderRadius: BorderRadius.circular(14),
+            onTap: () => _loadPreset(p),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 5,
+                    height: 5,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFE52535),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    p.title,
+                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: Color(0xFF475569)),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  // Shared Output Format Selector
+  Widget _buildFormatSelector({required bool isMobile}) {
+    return Row(
+      children: [
+        Expanded(
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: _modes.map((m) {
+                final isSelected = _selectedMode == m['id'];
+                return Padding(
+                  padding: const EdgeInsets.only(right: 6),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(16),
+                    onTap: () {
+                      setState(() {
+                        _selectedMode = m['id'] as String;
+                      });
+                      if (_rawTextController.text.trim().isNotEmpty) {
+                        _purifyText();
+                      }
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: isSelected ? const Color(0xFFFEF2F2) : Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: isSelected ? const Color(0xFFE52535) : const Color(0xFFE2E8F0),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            m['icon'] as IconData,
+                            size: 13,
+                            color: isSelected ? const Color(0xFFE52535) : const Color(0xFF64748B),
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            m['label'] as String,
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                              color: isSelected ? const Color(0xFFE52535) : const Color(0xFF334155),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+        ),
+        const SizedBox(width: 6),
+        _buildToneDropdown(),
+      ],
+    );
+  }
+
   Widget _buildOutputBody() {
     if (_isProcessing) {
       return const Center(
@@ -742,10 +1001,10 @@ class _ProfessionalEloquentScreenState extends State<ProfessionalEloquentScreen>
           mainAxisSize: MainAxisSize.min,
           children: [
             CircularProgressIndicator(strokeWidth: 2.5, color: Color(0xFFE52535)),
-            SizedBox(height: 12),
+            SizedBox(height: 10),
             Text(
               'Polishing speech with Google Gemma...',
-              style: TextStyle(fontSize: 12.5, color: Color(0xFF64748B)),
+              style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
             ),
           ],
         ),
@@ -757,30 +1016,28 @@ class _ProfessionalEloquentScreenState extends State<ProfessionalEloquentScreen>
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.edit_note_rounded, size: 38, color: const Color(0xFF94A3B8).withValues(alpha: 0.6)),
-            const SizedBox(height: 8),
+            Icon(Icons.edit_note_rounded, size: 36, color: const Color(0xFF94A3B8).withValues(alpha: 0.6)),
+            const SizedBox(height: 6),
             const Text(
               'No transcript polished yet',
-              style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600, color: Color(0xFF475569)),
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF475569)),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 2),
             const Text(
-              'Speak into the microphone or click a sample preset on the left.',
-              style: TextStyle(fontSize: 11.5, color: Color(0xFF94A3B8)),
+              'Speak into the microphone or tap a sample preset.',
+              style: TextStyle(fontSize: 11, color: Color(0xFF94A3B8)),
             ),
           ],
         ),
       );
     }
 
-    return SingleChildScrollView(
-      child: SelectableText(
-        _lastResult!.purifiedText,
-        style: const TextStyle(
-          fontSize: 14.5,
-          height: 1.6,
-          color: Color(0xFF0F172A),
-        ),
+    return SelectableText(
+      _lastResult!.purifiedText,
+      style: const TextStyle(
+        fontSize: 14,
+        height: 1.55,
+        color: Color(0xFF0F172A),
       ),
     );
   }
@@ -788,7 +1045,7 @@ class _ProfessionalEloquentScreenState extends State<ProfessionalEloquentScreen>
   Widget _buildToneDropdown() {
     return Container(
       height: 28,
-      padding: const EdgeInsets.symmetric(horizontal: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 6),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(6),
@@ -798,12 +1055,12 @@ class _ProfessionalEloquentScreenState extends State<ProfessionalEloquentScreen>
         child: DropdownButton<String>(
           value: _selectedTone,
           icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF64748B), size: 16),
-          style: const TextStyle(fontSize: 11.5, color: Color(0xFF334155)),
+          style: const TextStyle(fontSize: 11, color: Color(0xFF334155)),
           items: const [
-            DropdownMenuItem(value: 'professional', child: Text('Tone: Professional')),
-            DropdownMenuItem(value: 'casual', child: Text('Tone: Casual')),
-            DropdownMenuItem(value: 'executive', child: Text('Tone: Executive')),
-            DropdownMenuItem(value: 'direct', child: Text('Tone: Direct')),
+            DropdownMenuItem(value: 'professional', child: Text('Professional')),
+            DropdownMenuItem(value: 'casual', child: Text('Casual')),
+            DropdownMenuItem(value: 'executive', child: Text('Executive')),
+            DropdownMenuItem(value: 'direct', child: Text('Direct')),
           ],
           onChanged: (val) {
             if (val != null) {
@@ -820,15 +1077,15 @@ class _ProfessionalEloquentScreenState extends State<ProfessionalEloquentScreen>
     );
   }
 
-  Widget _buildMicrophoneButton() {
+  Widget _buildMicrophoneButton({double size = 38}) {
     return AnimatedBuilder(
       animation: _pulseController,
       builder: (context, child) {
         return GestureDetector(
           onTap: _toggleListening,
           child: Container(
-            width: 38,
-            height: 38,
+            width: size,
+            height: size,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: const Color(0xFFE52535),
@@ -845,7 +1102,7 @@ class _ProfessionalEloquentScreenState extends State<ProfessionalEloquentScreen>
             child: Icon(
               _isListening ? Icons.stop_rounded : Icons.mic_rounded,
               color: Colors.white,
-              size: 20,
+              size: size * 0.52,
             ),
           ),
         );
